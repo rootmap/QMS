@@ -14,7 +14,7 @@
             <?php echo form_open('administrator/survey_report/filter', array('class' => 'form-inline', 'id' => 'filter-form')); ?>
 
                 <?php echo form_dropdown('filter_survey', $this->survey_list, $this->form_data->filter_survey, 'id="filter_survey" class="chosen-select"'); ?>
-                <?php echo form_dropdown('filter_question', $this->question_list, $this->form_data->filter_question, 'id="filter_question" class="chosen-select"'); ?>
+                <?php //echo form_dropdown('filter_question', $this->question_list, $this->form_data->filter_question, 'id="filter_question" class="chosen-select"'); ?>
                 &nbsp;
                 <span class="btn-group">
                     <input type="submit" value="Filter" class="btn" />

@@ -135,6 +135,175 @@ class Survey_model extends CI_Model
             return false;
         }
     }
+
+    public function get_survey_user_report($survey_id)
+    {
+        $survey_id = (int)$survey_id;
+
+        if ($survey_id > 0) {
+            $this->db->where('survey_id', $survey_id);
+            $this->db->select('count(user_id) as total');
+            //$this->db->group_by('survey_id');
+            $query = $this->db->get($this->table_surveys_users);
+
+            if ($query->num_rows() > 0) {
+                return $query->row();
+            } else {
+                $this->error_message = 'Survey not found. Invalid id.';
+                return false;
+            }
+        } else {
+            $this->error_message = 'Invalid id.';
+            return false;
+        }
+    }
+
+    public function get_survey_user_attend_in_survey($survey_id)
+    {
+        $survey_id = (int)$survey_id;
+
+        if ($survey_id > 0) {
+            $this->db->where('survey_id', $survey_id);
+            $this->db->where("status!='open'");
+            $this->db->select('count(user_id) as total');
+            //$this->db->group_by('survey_id');
+            $query = $this->db->get($this->table_surveys_users);
+            //echo $this->db->last_query(); die();
+            if ($query->num_rows() > 0) {
+                return $query->row();
+            } else {
+                $this->error_message = 'Survey not found. Invalid id.';
+                return false;
+            }
+        } else {
+            $this->error_message = 'Invalid id.';
+            return false;
+        }
+    }
+
+
+    public function get_survey_all_choice_questions($survey_id)
+    {
+        $survey_id = (int)$survey_id;
+
+        if ($survey_id > 0) {
+            $this->db->where($this->table_name_surveys_questions.'.survey_id', $survey_id);
+            $this->db->where('b.ques_type', 'option_based');
+            $this->db->select($this->table_name_surveys_questions.'.question_id,
+    (SELECT c.cat_name FROM exm_survey_categories c WHERE c.id=b.category_id) AS category, 
+    (SELECT c.cat_name FROM exm_survey_sub_categories c WHERE c.id=b.sub_category_id) AS sub_category,
+    (SELECT c.cat_name FROM exm_survey_sub_two_categories c WHERE c.id=b.sub_two_category_id) AS sub_two_category,
+    (SELECT c.cat_name FROM exm_survey_sub_three_categories c WHERE c.id=b.sub_three_category_id) AS sub_three_category,
+    (SELECT c.cat_name FROM exm_survey_sub_four_categories c WHERE c.id=b.sub_four_category_id) AS sub_four_category,
+    b.ques_text,
+    b.ques_type,
+    b.ques_choices,b.survey_weight');
+            $this->db->join('exm_survey_questions b', $this->table_name_surveys_questions.'.question_id=b.id');
+            $query = $this->db->get($this->table_name_surveys_questions);
+
+            if ($query->num_rows() > 0) {
+                return $query->result();
+            } else {
+                $this->error_message = 'Survey not found. Invalid id.';
+                return false;
+            }
+        } else {
+            $this->error_message = 'Invalid id.';
+            return false;
+        }
+    }
+
+
+    public function get_survey_all_descriptive_questions($survey_id)
+    {
+        $survey_id = (int)$survey_id;
+
+        if ($survey_id > 0) {
+            $this->db->where($this->table_name_surveys_questions.'.survey_id', $survey_id);
+            $this->db->where('b.ques_type', 'descriptive');
+            $this->db->select($this->table_name_surveys_questions.'.question_id,
+    (SELECT c.cat_name FROM exm_survey_categories c WHERE c.id=b.category_id) AS category, 
+    (SELECT c.cat_name FROM exm_survey_sub_categories c WHERE c.id=b.sub_category_id) AS sub_category,
+    (SELECT c.cat_name FROM exm_survey_sub_two_categories c WHERE c.id=b.sub_two_category_id) AS sub_two_category,
+    (SELECT c.cat_name FROM exm_survey_sub_three_categories c WHERE c.id=b.sub_three_category_id) AS sub_three_category,
+    (SELECT c.cat_name FROM exm_survey_sub_four_categories c WHERE c.id=b.sub_four_category_id) AS sub_four_category,
+    b.ques_text,
+    b.ques_type,b.survey_weight');
+            $this->db->join('exm_survey_questions b', $this->table_name_surveys_questions.'.question_id=b.id');
+            $query = $this->db->get($this->table_name_surveys_questions);
+
+            //echo $this->db->last_query(); die();
+
+            if ($query->num_rows() > 0) {
+                return $query->result();
+            } else {
+                $this->error_message = 'Survey not found. Invalid id.';
+                return false;
+            }
+        } else {
+            $this->error_message = 'Invalid id.';
+            return false;
+        }
+    }
+
+    public function get_survey_all_descriptive_answers($survey_id,$question_id)
+    {
+        $survey_id = (int)$survey_id;
+        $question_id = (int)$question_id;
+
+        if ($survey_id > 0) {
+            $this->db->where('survey_id', $survey_id);
+            $this->db->where('question_id', $question_id);
+            $this->db->select('answer,dbo.get_user_full_name_by_id(user_id) AS user_full_name,
+                (SELECT department FROM exm_users WHERE exm_users.id=user_id) AS department,
+                (SELECT user_type FROM exm_users WHERE exm_users.id=user_id) AS user_type');
+            $query = $this->db->get($this->table_survey_answer);
+
+            //echo $this->db->last_query(); die();
+
+            if ($query->num_rows() > 0) {
+                return $query->result();
+            } else {
+                $this->error_message = 'Survey not found. Invalid id.';
+                return false;
+            }
+        } else {
+            $this->error_message = 'Invalid id.';
+            return false;
+        }
+    }
+
+    public function get_survey_choice_user_count($survey_id,$question_id,$answer)
+    {
+        $survey_id = (int)$survey_id;
+        $question_id = (int)$question_id;
+        $answer = $answer;
+
+        if ($survey_id > 0) {
+            $this->db->where('survey_id', $survey_id);
+            $this->db->where('question_id', $question_id);
+            $this->db->where('answer', $answer);
+            $this->db->select('COUNT(id) AS total');
+            $query = $this->db->get($this->table_survey_answer);
+
+            //echo $this->db->last_query(); die();
+
+            if ($query->num_rows() > 0) {
+                return $query->row();
+            } else {
+                $this->error_message = 'Survey not found. Invalid id.';
+                return false;
+            }
+        } else {
+            $this->error_message = 'Invalid id.';
+            return false;
+        }
+    }
+
+    
+
+    
+
     
      public function get_survey_by_title($survey_title)
     {

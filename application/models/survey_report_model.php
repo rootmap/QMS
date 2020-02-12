@@ -19,11 +19,14 @@ class Survey_report_model extends CI_Model
     
     public function get_survey($limit, $offset = 0, $filter = array())
     {
+        //echo 1; die();
         $result = array();
         $result['result'] = false;
         $result['count'] = 0;
         $limit = (int)$limit;
         $offset = (int)$offset;
+
+        //print_r_pre($filter);
         
         $this->db->select($this->table_name_surveys.".survey_title, 
             ".$this->table_name_surveys.".id, 
@@ -44,10 +47,10 @@ class Survey_report_model extends CI_Model
                 {
                     $this->db->where($this->table_name_surveys.".id", $filter[$key]['value']);
                 }
-                else
+                /*else
                 {
                     $this->db->where($filter[$key]['field'], $filter[$key]['value']);
-                }
+                }*/
             }
         }
         
@@ -59,6 +62,8 @@ class Survey_report_model extends CI_Model
             $this->db->limit($limit, $offset);
         }   
         $query = $this->db->get();
+
+        //echo $this->db->last_query(); die();
 
         if ($query->num_rows() > 0) {
             $result['result'] = $query->result();

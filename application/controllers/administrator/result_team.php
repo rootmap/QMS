@@ -171,6 +171,10 @@ class Result_team extends MY_Controller
             );
             $this->table->set_template($tbl_template);
             $records=$records_paged;
+
+            //echo "<pre>";
+            //print_r($records_paged); die();
+
             for ($i = 0; $i<count($records_paged); $i++) {
 
 
@@ -180,9 +184,31 @@ class Result_team extends MY_Controller
                 $total_subject_mark=0;
                 $exam_total_questions=0;
                 $exam_subjecttive_answer=0;
-                if(isset(unserialize($records[$i]->result_exam_state)->exam_questions))
+                $defineExamCatResultArray=[];
+                if(isset($records[$i]->result_exam_state))
                 {
-                    $defineExamCatResultArray=unserialize($records[$i]->result_exam_state)->exam_questions;
+                    
+
+                    if(@unserialize($records[$i]->result_exam_state))
+                    {
+                        $unseriArray=unserialize($records[$i]->result_exam_state);
+
+
+                        if(isset($unseriArray->exam_questions))
+                        {
+                            $defineExamCatResultArray=$unseriArray->exam_questions;      
+                        }
+                        else
+                        {
+                            //echo "<pre>";
+                            //print_r($unseriArray->exam_questions); die();
+                            $defineExamCatResultArray=[];      
+                        }
+
+                        
+                        
+                    }
+                                    
                 }
                 else
                 {
@@ -191,21 +217,54 @@ class Result_team extends MY_Controller
                 
                 $pushResultScoreKey=array();
                 $pushResultScore=[];
-                if(count($defineExamCatResultArray)>0)
+                if(count($defineExamCatResultArray)>0 && !empty($defineExamCatResultArray))
                 {
-                    foreach ($defineExamCatResultArray as $row) {
-                        $getRowCatInfoVal=$this->Select_global_model->FlyQuery(array("SELECT cat_name FROM exm_categories WHERE id='".$row->question->category_id."'"));
+
+                    foreach($defineExamCatResultArray as $row) 
+                    {
+                        
+
+                        $category_id=0;
+                        if(!empty($row->question->category_id))
+                        {
+                            $category_id=$row->question->category_id;
+                        }
+
+                        $getRowCatInfoVal=$this->Select_global_model->FlyQuery(array("SELECT cat_name FROM exm_categories WHERE id='".$category_id."'"));
+
+                        $cat_name='';
+                        if(!empty($getRowCatInfoVal[0]['cat_name']))
+                        {
+                            $cat_name=$getRowCatInfoVal[0]['cat_name'];
+                        }
+
+                        $res = strtolower(preg_replace("/[^a-zA-Z0-9]/", "_", $cat_name));
 
 
+                        $ques_type='';
+                        if(isset($row->question->ques_type))
+                        {
+                            $ques_type=$row->question->ques_type;
+                        }
+                        
+                        $ques_answer_type=''; 
+                        if(isset($row->question->ques_answer_type))
+                        {
+                            $ques_answer_type=$row->question->ques_answer_type; 
+                        }
 
-                        $res = strtolower(preg_replace("/[^a-zA-Z0-9]/", "_", $getRowCatInfoVal[0]['cat_name']));
+                        $ques_score=0; 
+                        if(isset($row->question->ques_answer_type))
+                        {
+                            $ques_score=$row->question->ques_score; 
+                        }
 
-
-                        $ques_type=$row->question->ques_type;
-                        $ques_answer_type=$row->question->ques_answer_type; //correct
-                        $ques_score=$row->question->ques_score; //correct
-                        $ques_user_score=$row->question->ques_user_score; //correct
-                        //$ques_type=$row->question->ques_type;
+                        $ques_user_score=0; 
+                        if(isset($row->question->ques_user_score))
+                        {
+                            $ques_user_score=$row->question->ques_user_score; 
+                        }
+                        
                         $total_subject_mark+=$ques_score;
                         $exam_total_questions+=1;
                         
@@ -276,11 +335,31 @@ class Result_team extends MY_Controller
                     $correct_answers = (int)$records[$i]->result_total_correct+$exam_subjecttive_answer;
                     $wrong_answers = (int)$records[$i]->result_total_wrong;
                     $dontknow_answers = (int)$records[$i]->result_total_dontknow;
-                    $correct_answer_percent = number_format(($correct_answers * 100) / $exam_total_questions, 0);
+
+                    //echo $correct_answers.' = '.$exam_total_questions; die();
+
+                    if($exam_total_questions>0)
+                    {
+                        $correct_answer_percent = number_format(($correct_answers * 100) / $exam_total_questions, 0);
+                    }
+                    else
+                    {
+                        $correct_answer_percent = 0;
+                    }
+                    
         
 
                 $user_score = number_format((float)$exam_row_total, 2);
-                $user_score_percent = number_format((float)(($user_score / $exam_score) * 100), 2);
+
+                if($exam_score>0)
+                {
+                    $user_score_percent = number_format((float)(($user_score / $exam_score) * 100), 2);
+                }
+                else
+                {
+                    $user_score_percent = 0;
+                }
+                
 
 
                 $user_name = $records[$i]->user_name;

@@ -124,7 +124,8 @@ class Survey_report extends MY_Controller
                 '2' => array('data'=> 'Total Question Weight', 'class' => 'center'),
                 '3' => array('data'=> 'Total Assign Attendies', 'class' => 'center'),
                 '4' => array('data'=> 'Survey Attendies', 'class' => 'center'),
-                '5' => array('data'=> 'User Report', 'class' => 'center')
+                '5' => array('data'=> 'User Report', 'class' => 'center'),
+                '6' => array('data'=> 'Action', 'class' => 'center')
             );
             $this->table->set_heading($tbl_heading);
 
@@ -139,6 +140,7 @@ class Survey_report extends MY_Controller
             for ($i = 0; $i<count($records); $i++) {
 
                         $stat_str = '<a href="'. base_url('administrator/survey_report/summary/'. $records[$i]->id) .'" title="View Survey Summary"><span class="label label-success">Survey Summary</span></a>';
+                        $stat_str_download = '<a href="'. base_url('administrator/survey_report/download_data/'. $records[$i]->id) .'" title="Download Survey Report" class="btn btn-info"><span><i class="icon-download-alt"></i> Download</span></a>';
 
                         $tbl_row = array(
                             '0' => array('data'=> $records[$i]->survey_title),
@@ -146,7 +148,8 @@ class Survey_report extends MY_Controller
                             '2' => array('data'=> $records[$i]->total_weight, 'class' => 'center', 'width' => '100'),
                             '3' => array('data'=> $records[$i]->total_assign_user, 'class' => 'center', 'width' => '100'),
                             '4' => array('data'=> $records[$i]->survey_attendies, 'class' => 'center', 'width' => '100'),
-                            '5' => array('data'=> $stat_str, 'class' => 'center', 'width' => '100')
+                            '5' => array('data'=> $stat_str, 'class' => 'center', 'width' => '100'),
+                            '6' => array('data'=> $stat_str_download, 'class' => 'center', 'width' => '130')
                         );
                         $this->table->add_row($tbl_row);                    
             }
@@ -484,6 +487,506 @@ class Survey_report extends MY_Controller
         redirect('administrator/survey_report');
     }
     
+    public function download_data()
+    {
+
+        $survey_id=$this->uri->segment(4); 
+        $update_data = $this->insert_global_model->globalinsert($this->tbl_exam_users_activity,array('user_id'=>$this->logged_in_user->id,
+            'activity_time'=>date('Y-m-d H:i:s'),'activity'=>'Download Survey Report ('.$survey_id.')'));
+
+
+        $survey=$this->survey_model->get_survey($survey_id);
+        $sql_tauts=$this->survey_model->get_survey_user_report($survey_id);
+        $total_assign_user_to_survey=$sql_tauts->total;
+
+        $sql_tsuas=$this->survey_model->get_survey_user_attend_in_survey($survey_id);
+        $total_user_attend_in_survey=$sql_tsuas->total;
+        
+
+
+
+
+
+
+
+        //print_r_pre($survey);
+
+                $this->excel->createSheet(0);
+                $this->excel->setActiveSheetIndex(0);
+
+                $this->excel->setActiveSheetIndex(0);
+                $this->excel->getActiveSheet()->setTitle('Option Based');
+
+                // set result column header
+                $this->excel->getActiveSheet()->setCellValue('B1', 'Survey No.');
+                $this->excel->getActiveSheet()->setCellValue('D1', $survey->id);
+                $this->excel->getActiveSheet()->setCellValue('B2', 'Survey Name');
+                $this->excel->getActiveSheet()->setCellValue('D2', $survey->survey_title);
+                $this->excel->getActiveSheet()->setCellValue('B3', 'Total no. of assigned participants');
+                $this->excel->getActiveSheet()->setCellValue('B4', 'Total participants Attended');
+                $this->excel->getActiveSheet()->setCellValue('B5', 'Survey Completion Percentage');
+                $this->excel->getActiveSheet()->setCellValue('D3', $total_assign_user_to_survey);
+                $this->excel->getActiveSheet()->setCellValue('D4', $total_user_attend_in_survey);
+                $this->excel->getActiveSheet()->setCellValue('D5', '=D4/D3');
+                $this->excel->getActiveSheet()->setCellValue('B6', 'Start Date');
+                $this->excel->getActiveSheet()->setCellValue('D6', $survey->survey_added);
+                $this->excel->getActiveSheet()->setCellValue('B7', 'End Date');
+                $this->excel->getActiveSheet()->setCellValue('D7', $survey->survey_expired);
+                $this->excel->setActiveSheetIndex(0)->mergeCells('B1:C1');
+                $this->excel->setActiveSheetIndex(0)->mergeCells('B2:C2');
+                $this->excel->setActiveSheetIndex(0)->mergeCells('B3:C3');
+                $this->excel->setActiveSheetIndex(0)->mergeCells('B4:C4');
+                $this->excel->setActiveSheetIndex(0)->mergeCells('B5:C5');
+                $this->excel->setActiveSheetIndex(0)->mergeCells('B5:C5');
+                $this->excel->setActiveSheetIndex(0)->mergeCells('B6:C6');
+                $this->excel->setActiveSheetIndex(0)->mergeCells('B7:C7');
+
+                $this->excel->getActiveSheet()->getStyle('D5')->getNumberFormat()->setFormatCode('#,##0.00');
+
+                $this->excel->getActiveSheet()->getStyle('A1:D1')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A2:D2')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A3:D3')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A4:D4')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A5:D5')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A6:D6')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A7:D7')->getFont()->setBold(true);
+
+                for($i=1; $i<=7; $i++)
+                {
+                    $this->excel->getActiveSheet()
+                            ->getStyle('B'.$i.':D'.$i)
+                            ->getBorders()
+                            ->getTop()
+                            ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('B'.$i.':D'.$i)
+                                ->getBorders()
+                                ->getLeft()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('B'.$i.':D'.$i)
+                                ->getBorders()
+                                ->getRight()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('B'.$i.':D'.$i)
+                                ->getBorders()
+                                ->getBottom()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+
+                    $this->excel->getActiveSheet()
+                            ->getStyle('C'.$i)
+                            ->getBorders()
+                            ->getTop()
+                            ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('C'.$i)
+                                ->getBorders()
+                                ->getLeft()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('C'.$i)
+                                ->getBorders()
+                                ->getRight()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('C'.$i)
+                                ->getBorders()
+                                ->getBottom()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+                }
+
+
+
+                //second table start
+                $this->excel->getActiveSheet()->setCellValue('A10', 'Sl No.');
+                $this->excel->getActiveSheet()->setCellValue('B10', 'Category');
+                $this->excel->getActiveSheet()->setCellValue('C10', 'Sub Category');
+                $this->excel->getActiveSheet()->setCellValue('D10', 'Sub 2 Category');
+                $this->excel->getActiveSheet()->setCellValue('E10', 'Sub 3 Category');
+                $this->excel->getActiveSheet()->setCellValue('F10', 'Sub 4 Category');
+                $this->excel->getActiveSheet()->setCellValue('G10', 'Description');
+                $this->excel->getActiveSheet()->setCellValue('H10', 'Count');
+                $this->excel->getActiveSheet()->setCellValue('I10', 'Response % (100)');
+                $this->excel->getActiveSheet()->setCellValue('J10', 'Question Weight (%)');
+                $this->excel->getActiveSheet()->setCellValue('K10', 'Option Weight');
+
+                
+
+                $this->excel->getActiveSheet()->getStyle('A10:K10')->getFont()->setBold(true);
+                
+                $this->excel->getActiveSheet()
+                        ->getStyle('A10:K10')
+                        ->getFill()
+                        ->setFillType(PHPExcel_Style_Fill::FILL_SOLID)
+                        ->getStartColor()
+                        ->setRGB('2E75B6');
+
+
+                foreach (range('A', 'K') as $char) {
+                    //echo $char . "\n";
+
+                    $this->excel->getActiveSheet()
+                            ->getStyle($char.'10')
+                            ->getBorders()
+                            ->getTop()
+                            ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle($char.'10')
+                                ->getBorders()
+                                ->getLeft()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle($char.'10')
+                                ->getBorders()
+                                ->getRight()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle($char.'10')
+                                ->getBorders()
+                                ->getBottom()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+                }
+
+
+                $serial = 0;
+                $col = 10;
+                $sql_allQuestionChoice=$this->survey_model->get_survey_all_choice_questions($survey_id);
+                if(count($sql_allQuestionChoice)>0)
+                {
+                    foreach($sql_allQuestionChoice as $row)
+                    {
+                        $serial++;
+                        $col++;
+                       // echo "<pre>";
+                        //print_r(unserialize($row->ques_choices)).'<br>';
+
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(0, $col, $serial);
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(1, $col, $row->category);
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(2, $col, $row->sub_category);
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(3, $col, $row->sub_two_category);
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(4, $col, $row->sub_three_category);
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(5, $col, $row->sub_four_category);
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(6, $col, $row->ques_text);
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(7, $col, '');
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(8, $col, '');
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(9, $col, $row->survey_weight);
+                         $this->excel->getActiveSheet()->setCellValueByColumnAndRow(10, $col, '');
+
+                         $question_id=$row->question_id;
+
+                         $unSeriChoice=unserialize($row->ques_choices);
+                         if(count($unSeriChoice)>0)
+                         {
+
+                            $totalinCountChoice=count($unSeriChoice);
+
+                            $totalHStartPoint='$H$'.($col+1).':$H$'.(($col+1)+$totalinCountChoice);
+
+                            //echo $totalHStartPoint; die();
+
+                            foreach($unSeriChoice as $cmk)
+                            {
+
+                                $answer=$cmk['text'];
+                                $sqlGetCountAttendiesAns=$this->survey_model->get_survey_choice_user_count($survey_id,$question_id,$answer);
+                                $countAttendiesAns=$sqlGetCountAttendiesAns->total;
+
+                                $col++;
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(0, $col, '');
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(1, $col, '');
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(2, $col, '');
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(3, $col, '');
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(4, $col, '');
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(5, $col, '');
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(6, $col, $answer);
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(7, $col, $countAttendiesAns);
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(8, $col, '=H'.$col.'/SUM('.$totalHStartPoint.')*100');
+                                $this->excel->getActiveSheet()->setCellValueByColumnAndRow(9, $col, '');
+                                if(isset($cmk['value']))
+                                {
+                                    $this->excel->getActiveSheet()->setCellValueByColumnAndRow(10, $col, $cmk['value']);
+                                }
+                                else
+                                {
+                                    $this->excel->getActiveSheet()->setCellValueByColumnAndRow(10, $col, '');
+                                }
+                                
+                                
+                            }
+                         }
+
+                    }
+                }
+
+
+                //sheet descriptive start 
+                //$this->excel->createSheet(1);
+                $this->excel->setActiveSheetIndex(1);
+
+                $this->excel->getActiveSheet()->setTitle('Descriptive');
+
+                // set result column header
+                $this->excel->getActiveSheet()->setCellValue('B1', 'Survey No.');
+                $this->excel->getActiveSheet()->setCellValue('D1', $survey->id);
+                $this->excel->getActiveSheet()->setCellValue('B2', 'Survey Name');
+                $this->excel->getActiveSheet()->setCellValue('D2', $survey->survey_title);
+                $this->excel->getActiveSheet()->setCellValue('B3', 'Total no. of assigned participants');
+                $this->excel->getActiveSheet()->setCellValue('B4', 'Total participants Attended');
+                $this->excel->getActiveSheet()->setCellValue('B5', 'Survey Completion Percentage');
+                $this->excel->getActiveSheet()->setCellValue('D3', $total_assign_user_to_survey);
+                $this->excel->getActiveSheet()->setCellValue('D4', $total_user_attend_in_survey);
+                $this->excel->getActiveSheet()->setCellValue('D5', '=D4/D3');
+                $this->excel->getActiveSheet()->setCellValue('B6', 'Start Date');
+                $this->excel->getActiveSheet()->setCellValue('D6', $survey->survey_added);
+                $this->excel->getActiveSheet()->setCellValue('B7', 'End Date');
+                $this->excel->getActiveSheet()->setCellValue('D7', $survey->survey_expired);
+                $this->excel->setActiveSheetIndex(1)->mergeCells('B1:C1');
+                $this->excel->setActiveSheetIndex(1)->mergeCells('B2:C2');
+                $this->excel->setActiveSheetIndex(1)->mergeCells('B3:C3');
+                $this->excel->setActiveSheetIndex(1)->mergeCells('B4:C4');
+                $this->excel->setActiveSheetIndex(1)->mergeCells('B5:C5');
+                $this->excel->setActiveSheetIndex(1)->mergeCells('B5:C5');
+                $this->excel->setActiveSheetIndex(1)->mergeCells('B6:C6');
+                $this->excel->setActiveSheetIndex(1)->mergeCells('B7:C7');
+
+                $this->excel->getActiveSheet()->getStyle('D5')->getNumberFormat()->setFormatCode('#,##0.00');
+
+                $this->excel->getActiveSheet()->getStyle('A1:D1')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A2:D2')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A3:D3')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A4:D4')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A5:D5')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A6:D6')->getFont()->setBold(true);
+                $this->excel->getActiveSheet()->getStyle('A7:D7')->getFont()->setBold(true);
+
+                for($i=1; $i<=7; $i++)
+                {
+                    $this->excel->getActiveSheet()
+                            ->getStyle('B'.$i.':D'.$i)
+                            ->getBorders()
+                            ->getTop()
+                            ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('B'.$i.':D'.$i)
+                                ->getBorders()
+                                ->getLeft()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('B'.$i.':D'.$i)
+                                ->getBorders()
+                                ->getRight()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('B'.$i.':D'.$i)
+                                ->getBorders()
+                                ->getBottom()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+
+                    $this->excel->getActiveSheet()
+                            ->getStyle('C'.$i)
+                            ->getBorders()
+                            ->getTop()
+                            ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('C'.$i)
+                                ->getBorders()
+                                ->getLeft()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('C'.$i)
+                                ->getBorders()
+                                ->getRight()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle('C'.$i)
+                                ->getBorders()
+                                ->getBottom()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+                }
+
+
+
+                //second table start
+                $this->excel->getActiveSheet()->setCellValue('A10', 'Sl No.');
+                $this->excel->getActiveSheet()->setCellValue('B10', 'Category');
+                $this->excel->getActiveSheet()->setCellValue('C10', 'Sub Category');
+                $this->excel->getActiveSheet()->setCellValue('D10', 'Sub 2 Category');
+                $this->excel->getActiveSheet()->setCellValue('E10', 'Sub 3 Category');
+                $this->excel->getActiveSheet()->setCellValue('F10', 'Sub 4 Category');
+                $this->excel->getActiveSheet()->setCellValue('G10', 'Description');
+                $this->excel->getActiveSheet()->setCellValue('H10', 'Responded by');
+                $this->excel->getActiveSheet()->setCellValue('I10', 'Department');
+                $this->excel->getActiveSheet()->setCellValue('J10', 'Division');
+
+                
+
+                $this->excel->getActiveSheet()->getStyle('A10:J10')->getFont()->setBold(true);
+                
+                $this->excel->getActiveSheet()
+                        ->getStyle('A10:J10')
+                        ->getFill()
+                        ->setFillType(PHPExcel_Style_Fill::FILL_SOLID)
+                        ->getStartColor()
+                        ->setRGB('2E75B6');
+
+
+                foreach (range('A', 'J') as $char) {
+                    //echo $char . "\n";
+
+                    $this->excel->getActiveSheet()
+                            ->getStyle($char.'10')
+                            ->getBorders()
+                            ->getTop()
+                            ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle($char.'10')
+                                ->getBorders()
+                                ->getLeft()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle($char.'10')
+                                ->getBorders()
+                                ->getRight()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+                    $this->excel->getActiveSheet()
+                                ->getStyle($char.'10')
+                                ->getBorders()
+                                ->getBottom()
+                                ->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+                }
+
+
+                $serial = 0;
+                $col = 10;
+                $sql_allQuestionDescriptive=$this->survey_model->get_survey_all_descriptive_questions($survey_id);
+
+   
+                if(is_array($sql_allQuestionDescriptive))
+                {
+                    if(count($sql_allQuestionDescriptive)>0)
+                    {
+                        foreach($sql_allQuestionDescriptive as $row)
+                        {
+                            //print_r_pre($row);
+                            //echo 1; die();
+                            $serial++;
+                            $col++;
+                           // echo "<pre>";
+                            //print_r(unserialize($row->ques_choices)).'<br>';
+
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(0, $col, $serial);
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(1, $col, $row->category);
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(2, $col, $row->sub_category);
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(3, $col, $row->sub_two_category);
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(4, $col, $row->sub_three_category);
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(5, $col, $row->sub_four_category);
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(6, $col, strip_tags(html_entity_decode($row->ques_text)));
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(7, $col, '');
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(8, $col, '');
+                             $this->excel->getActiveSheet()->setCellValueByColumnAndRow(9, $col, '');
+
+                             $question_id=$row->question_id;
+
+                             $sqlGetCountAttendiesAns=$this->survey_model->get_survey_all_descriptive_answers($survey_id,$question_id);
+
+                             if(is_array($sqlGetCountAttendiesAns))
+                             {
+                                    if(count($sqlGetCountAttendiesAns)>0)
+                                    {
+                                        foreach($sqlGetCountAttendiesAns as $rk)
+                                        {
+                                            //print_r_pre($rk);
+                                            $col++;
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(0, $col, '');
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(1, $col, '');
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(2, $col, '');
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(3, $col, '');
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(4, $col, '');
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(5, $col, '');
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(6, $col, $rk->answer);
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(7, $col, $rk->user_full_name);
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(8, $col, $rk->department);
+                                            $this->excel->getActiveSheet()->setCellValueByColumnAndRow(9, $col, $rk->user_type);
+                                        }
+                                    }
+                             }
+
+                            // print_r_pre($sqlGetCountAttendiesAns);
+
+                        }
+                    }
+
+
+                }
+
+                //print_r_pre($sql_allQuestionChoice);
+
+
+
+                // fill data
+                /*$serial = 0;
+                $row = 1;
+                $percentage = 0;
+                $no_of_answer = 0;
+                $total_assigned = 0;
+                if($records){
+                    for ($i=0; $i<count($records); $i++) {
+                        
+                        
+                        $serial++;
+                        $row++;
+                        
+                        $this->excel->getActiveSheet()->setCellValueByColumnAndRow(0, $row, $serial);
+                        $this->excel->getActiveSheet()->setCellValueByColumnAndRow(1, $row, $records[$i]->survey_title);
+                        $this->excel->getActiveSheet()->setCellValueByColumnAndRow(2, $row, $records[$i]->total_question);
+                        $this->excel->getActiveSheet()->setCellValueByColumnAndRow(3, $row, $records[$i]->total_weight);
+                        $this->excel->getActiveSheet()->setCellValueByColumnAndRow(4, $row, $records[$i]->total_assign_user);
+                        $this->excel->getActiveSheet()->setCellValueByColumnAndRow(5, $row, $records[$i]->survey_attendies);
+       
+                    }
+                }
+                */
+
+                $filename = 'Survey Report Download '. date('Y-m-d') .'.xls';
+
+                header('Content-Type: application/vnd.ms-excel');
+                header('Content-Disposition: attachment;filename="'. $filename. '"');
+                header('Cache-Control: max-age=0');
+
+                $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel5');
+                $objWriter->save('php://output');
+
+            /*} else {
+                $this->session->set_flashdata('message_error', 'Records not found to export');
+                redirect('administrator/survey_report');
+            }
+        } else {
+            $this->session->set_flashdata('message_error', 'Records not found to export');
+            redirect('administrator/survey_report');
+        }*/
+    }
+
     public function export_data()
     {
         $update_data = $this->insert_global_model->globalinsert($this->tbl_exam_users_activity,array('user_id'=>$this->logged_in_user->id,
